@@ -1,0 +1,34 @@
+rules:
+  # 8-5 入侵根因: 进程级开启 fastjson 多态反序列化
+  - id: apex-fastjson-global-autotype
+    languages: [java]
+    severity: ERROR
+    message: "Fastjson autoType 全局开启 — 进程级多态反序列化, 所有 JSON 接口 RCE (CVE-2022-25845). 8-5 l2dex-admin-server 失陷根因."
+    metadata:
+      cwe: "CWE-502"
+      source: apex-sast-rules
+      confidence: HIGH
+    patterns:
+      - pattern: ParserConfig.getGlobalInstance().setAutoTypeSupport(true)
+
+  - id: apex-fastjson-autotype-support-true
+    languages: [java]
+    severity: ERROR
+    message: "setAutoTypeSupport(true) 开启 fastjson 多态反序列化 → RCE 风险 (CVE-2022-25845). 确认是否必须, 否则关闭."
+    metadata:
+      cwe: "CWE-502"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: $CFG.setAutoTypeSupport(true)
+      - pattern: $CFG.setAutoTypeSupportNotCheck(true)
+
+  - id: apex-fastjson-parseobject-userinput
+    languages: [java]
+    severity: WARNING
+    message: "JSON.parseObject 接收不可信输入, 配合 autoType 可致 RCE。确认输入已校验且未开启 autoType."
+    metadata:
+      cwe: "CWE-502"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: JSON.parseObject($REQ.<...>)
+      - pattern: JSON.parse($REQ.<...>)
