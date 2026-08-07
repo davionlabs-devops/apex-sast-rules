@@ -1,0 +1,72 @@
+rules:
+  # fastjson/SpEL gadget 链常见出口: 加载远程 XML bean → RCE
+  - id: apex-classpathxmlappcontext-remote
+    languages: [java]
+    severity: ERROR
+    message: "ClassPathXmlApplicationContext 加载不可信/远程 XML → Spring bean RCE (fastjson/SpEL gadget 链出口)."
+    metadata:
+      cwe: "CWE-94"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: new ClassPathXmlApplicationContext($URL)
+      - pattern: (new ClassPathXmlApplicationContext($XML)).getBean(...)
+
+  # snakeyaml 无 SafeConstructor → 反序列化 RCE
+  - id: apex-snakeyaml-unsafe-load
+    languages: [java]
+    severity: WARNING
+    message: "new Yaml().load(...) 无 SafeConstructor → SnakeYAML 反序列化 RCE (CVE-2022-1471)."
+    metadata:
+      cwe: "CWE-502"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: new Yaml().load($X)
+      - pattern: new Yaml().loadAll(...)
+
+  # SpEL 表达式注入
+  - id: apex-spel-eval-userinput
+    languages: [java]
+    severity: ERROR
+    message: "SpelExpressionParser 解析不可信表达式 → SpEL 注入 RCE. 确认表达式非用户可控."
+    metadata:
+      cwe: "CWE-94"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: (new SpelExpressionParser()).parseExpression($INPUT)
+      - pattern: $PARSER.parseExpression($INPUT).getValue(...)
+
+  # ScriptEngine 任意代码执行
+  - id: apex-scriptengine-eval
+    languages: [java]
+    severity: ERROR
+    message: "ScriptEngine.eval(不可信脚本) → 任意代码执行. 确认脚本来源可信."
+    metadata:
+      cwe: "CWE-94"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: $ENGINE.eval($SCRIPT)
+      - pattern: $ENGINE.eval($READER)
+
+  # FreeMarker SSTI
+  - id: apex-freemarker-template-userinput
+    languages: [java]
+    severity: ERROR
+    message: "FreeMarker 模板来源不可信 → SSTI RCE (fastjson gadget 链环节, new Template(name, userInput, cfg))."
+    metadata:
+      cwe: "CWE-1336"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: new Template($NAME, $USERINPUT, $CFG)
+      - pattern: $CFG.setSetting("new_builtin_class_resolver", ...)
+
+  # 命令执行(拼接)
+  - id: apex-runtime-exec
+    languages: [java]
+    severity: WARNING
+    message: "Runtime.exec / ProcessBuilder 执行命令 → 复核是否拼接不可信输入(命令注入, CWE-78)."
+    metadata:
+      cwe: "CWE-78"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: Runtime.getRuntime().exec($CMD)
+      - pattern: new ProcessBuilder(...).start()
