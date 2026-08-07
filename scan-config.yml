@@ -1,0 +1,15 @@
+# CodeQL 扫描配置
+# 当前: 文档用途(workflow 内嵌 Java 清单)。预留: codeql-scan.yml 可改为读本文件 → 仓清单也外挂。
+#
+# 焦点: Java (8-5 fastjson/反序列化/SSTI 入侵链)。先跑高价值子集, 验证后扩到 28 Java 全量。
+languages: [java]
+
+# 先跑子集(直接关系 8-5 / 7-28 事故 + dep-scan 盲区)
+priority_repos:
+  - { repo: admin-server,       owner: "@alan.wu",  note: "8-5 失陷服务(l2dex-admin-server, fastjson autoType 根因)" }
+  - { repo: connect-server,     owner: "@alan.wu",  note: "dep-scan 发现 xxl-job-core 2.2.0 ×3 CVE" }
+  - { repo: blog-apex-service,  owner: "@alan.wu",  note: "dep-scan 盲区仓" }
+  - { repo: trade-server,       owner: "@alan.wu",  note: "7-28 黑客事故核心仓" }
+  - { repo: omni-trade-server,  owner: "@leo.yu" }
+
+# 全量 Java 清单(28)见 devops-tools codeql-scan.yml list-repos
