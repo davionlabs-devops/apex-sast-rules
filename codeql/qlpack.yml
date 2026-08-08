@@ -1,6 +1,6 @@
 name: apex/codeql-java
 version: 0.0.1
-description: ApeX 自定义 CodeQL Java 规则 (8-5 入侵相关代码级 sink: fastjson autoType / 反序列化 / SSTI / SpEL)
+description: "ApeX 自定义 CodeQL Java 规则 (8-5 入侵相关代码级 sink: fastjson autoType / 反序列化 / SSTI / SpEL)"
 library: false
 dependencies:
   codeql/java-all: "*"
