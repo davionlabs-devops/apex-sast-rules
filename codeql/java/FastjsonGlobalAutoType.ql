@@ -10,8 +10,8 @@
  */
 import java
 
-from MethodAccess ma
+from MethodCall ma
 where
   ma.getMethod().hasName("setAutoTypeSupport") and
-  ma.getQualifier().(MethodAccess).getMethod().hasName("getGlobalInstance")
+  ma.getQualifier().(MethodCall).getMethod().hasName("getGlobalInstance")
 select ma, "Fastjson autoType 全局开启 — 所有 JSON 接口暴露于 RCE (8-5 l2dex-admin-server 失陷根因, CVE-2022-25845)."
