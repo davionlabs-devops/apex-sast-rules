@@ -1,0 +1,58 @@
+rules:
+  # Python 反序列化 RCE — fastjson autoType 的跨语言等价物 (8-5 入侵同类型 sink)
+  - id: apex-python-pickle-load
+    languages: [python]
+    severity: ERROR
+    message: "pickle.loads / pickle.load 反序列化不可信数据 → 任意代码执行 (Python 版 fastjson autoType, CWE-502). 确认数据来源可信。"
+    metadata:
+      cwe: "CWE-502"
+      source: apex-sast-rules
+      confidence: HIGH
+    patterns:
+      - pattern: pickle.loads(...)
+      - pattern: pickle.load(...)
+
+  # yaml.load 未指定 SafeLoader → SnakeYAML 同型 RCE (CVE-2022-1471 等价)
+  - id: apex-python-yaml-unsafe-load
+    languages: [python]
+    severity: ERROR
+    message: "yaml.load 未指定 Loader=SafeLoader / CSafeLoader → YAML 反序列化 RCE (CWE-502). 改用 yaml.safe_load。"
+    metadata:
+      cwe: "CWE-502"
+      source: apex-sast-rules
+    patterns:
+      - pattern: yaml.load($DATA, ...)
+      - pattern: yaml.load($DATA)
+      - pattern-not: yaml.load($DATA, Loader=yaml.SafeLoader, ...)
+      - pattern-not: yaml.load($DATA, Loader=yaml.CSafeLoader, ...)
+
+  # 命令注入
+  - id: apex-python-os-system
+    languages: [python]
+    severity: ERROR
+    message: "os.system 执行命令 → 命令注入 (CWE-78). 若拼接不可信输入则 RCE, 改用 subprocess + shell=False + 列表参数。"
+    metadata:
+      cwe: "CWE-78"
+      source: apex-sast-rules
+    pattern: os.system(...)
+
+  - id: apex-python-subprocess-shell-true
+    languages: [python]
+    severity: ERROR
+    message: "subprocess(..., shell=True) → 命令注入 (CWE-78). shell=True 时命令经 shell 解析, 拼接不可信输入即 RCE。"
+    metadata:
+      cwe: "CWE-78"
+      source: apex-sast-rules
+    pattern: subprocess.run(..., shell=True, ...)
+
+  # SQL 注入(字符串拼接)
+  - id: apex-python-sqli-format
+    languages: [python]
+    severity: WARNING
+    message: "SQL 查询用字符串拼接 (.format / f-string / %) → SQL 注入 (CWE-89). 改用参数化查询。"
+    metadata:
+      cwe: "CWE-89"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: $CURSOR.execute($SQL.format(...))
+      - pattern: $CURSOR.execute(f"...")
