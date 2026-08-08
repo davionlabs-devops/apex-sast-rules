@@ -1,0 +1,69 @@
+rules:
+  # 命令注入 — Go 版 Runtime.exec
+  - id: apex-go-exec-command-injection
+    languages: [go]
+    severity: ERROR
+    message: "exec.Command / exec.CommandContext 用字符串拼接构造命令 → 命令注入 (CWE-78). 确认参数非用户可控, 或用固定命令 + 列表参数。"
+    metadata:
+      cwe: "CWE-78"
+      source: apex-sast-rules
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: exec.Command($CMD + $X, ...)
+          - pattern: exec.CommandContext($CTX, $CMD + $X, ...)
+          - pattern: exec.Command(fmt.Sprintf(...), ...)
+          - pattern: exec.CommandContext($CTX, fmt.Sprintf(...), ...)
+
+  # SQL 注入 — Go database/sql 字符串拼接
+  - id: apex-go-sqli-string-concat
+    languages: [go]
+    severity: ERROR
+    message: "SQL 查询字符串拼接 (fmt.Sprintf / +) → SQL 注入 (CWE-89). 改用占位符参数化查询 db.Query(sql, args...)。"
+    metadata:
+      cwe: "CWE-89"
+      source: apex-sast-rules
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: $DB.Query(fmt.Sprintf(...), ...)
+          - pattern: $DB.QueryRow(fmt.Sprintf(...), ...)
+          - pattern: $DB.Exec(fmt.Sprintf(...), ...)
+          - pattern: $DB.Query($SQL + $X, ...)
+
+  # SSRF — http 请求用户可控 URL
+  - id: apex-go-ssrf-http-get
+    languages: [go]
+    severity: WARNING
+    message: "http.Get / http.Post / http.NewRequest 接收用户可控 URL → SSRF (CWE-918). 复核 URL 来源, 校验 scheme/host, 禁打内网元数据 (IMDS 169.254.169.254)。"
+    metadata:
+      cwe: "CWE-918"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: http.Get($URL)
+      - pattern: http.Post($URL, ...)
+      - pattern: http.NewRequest($METHOD, $URL, ...)
+
+  # 弱随机数用于安全场景(token/密钥/会话)
+  - id: apex-go-weak-rand-crypto
+    languages: [go]
+    severity: ERROR
+    message: "math/rand 生成安全敏感值 (token/密钥/会话ID) → 可预测 → 鉴权绕过 (CWE-338). 安全场景必须用 crypto/rand。"
+    metadata:
+      cwe: "CWE-338"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: math/rand.Read(...)
+      - pattern: rand.Read(...)
+
+  # 路径穿越 — 文件路径拼接用户输入
+  - id: apex-go-path-traversal
+    languages: [go]
+    severity: WARNING
+    message: "filepath.Join / os.Open 用用户输入拼接路径 → 路径穿越 (CWE-22). 校验或清洗路径前缀。"
+    metadata:
+      cwe: "CWE-22"
+      source: apex-sast-rules
+    pattern-either:
+      - pattern: filepath.Join($BASE, $USERINPUT)
+      - pattern: os.Open(filepath.Join(...))
