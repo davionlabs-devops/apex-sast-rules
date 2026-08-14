@@ -20,7 +20,7 @@ class ApexFreemarkerSstiFlow extends TaintTracking::Configuration {
 
   override predicate isSink(DataFlow::Node sink) {
     exists(NewClassExpr ne |
-      ne.getType().getASupertype*().getQualifiedName() = "freemarker.template.Template" and
+      ne.getConstructor().getDeclaringType().getASupertype*().getQualifiedName() = "freemarker.template.Template" and
       ne.getArgument(1) = sink.asExpr()
     )
   }
