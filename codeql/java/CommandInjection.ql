@@ -25,7 +25,7 @@ class ApexCmdInjectionFlow extends TaintTracking::Configuration {
     )
     or
     exists(NewClassExpr ne |
-      ne.getType().getASupertype*().getQualifiedName() = "java.lang.ProcessBuilder" and
+      ne.getConstructor().getDeclaringType().getASupertype*().getQualifiedName() = "java.lang.ProcessBuilder" and
       sink.asExpr() = ne.getAnArgument()
     )
   }
