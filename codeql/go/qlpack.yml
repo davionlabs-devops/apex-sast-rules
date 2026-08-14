@@ -1,0 +1,6 @@
+name: apex/codeql-go
+version: 0.0.1
+description: "ApeX 自定义 CodeQL Go 规则 (命令执行等 RCE 面)"
+library: false
+dependencies:
+  codeql/go-all: "*"
