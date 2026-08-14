@@ -20,7 +20,7 @@ class ApexDeserFlow extends TaintTracking::Configuration {
 
   override predicate isSink(DataFlow::Node sink) {
     exists(NewClassExpr ne |
-      ne.getType().getASupertype*().getName().regexpMatch("ObjectInputStream|HessianInput|Hessian2Input") and
+      ne.getConstructor().getDeclaringType().getASupertype*().getName().regexpMatch("ObjectInputStream|HessianInput|Hessian2Input") and
       sink.asExpr() = ne.getAnArgument()
     )
   }
