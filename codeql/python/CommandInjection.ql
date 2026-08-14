@@ -1,41 +1,33 @@
 /**
  * @name Python 命令注入
- * @description 远端输入流入 os.system/os.popen/subprocess.* → 命令执行 (CWE-78)。
+ * @description 远端输入流入 os.system/os.popen/subprocess.* (官方 SystemCommandExecution 概念) (CWE-78)。
  * @kind path-problem
  * @id apex/py-cmd-injection
  * @problem.severity error
+ * @security-severity 9.8
  * @tags security external/cwe/cwe-78
  */
 import python
-import semmle.code.python.dataflow.TaintTracking
-import semmle.code.python.dataflow.FlowSources
+import semmle.python.dataflow.new.DataFlow
+import semmle.python.dataflow.new.TaintTracking
+import semmle.python.dataflow.new.RemoteFlowSources
+import semmle.python.Concepts
 
-class ApexPyCmdFlow extends TaintTracking::Configuration {
-  ApexPyCmdFlow() { this = "ApexPyCmdFlow" }
-
-  override predicate isSource(DataFlow::Node source) {
+module ApexPyCmdCfg implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     source instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node sink) {
-    exists(Function f, Call c |
-      c = f.getACall() and
-      sink.asExpr() = c.getArg(_) and
-      (
-        f = API::moduleImport("os").getFunction("system") or
-        f = API::moduleImport("os").getFunction("popen") or
-        f = API::moduleImport("subprocess").getFunction("run") or
-        f = API::moduleImport("subprocess").getFunction("call") or
-        f = API::moduleImport("subprocess").getFunction("check_call") or
-        f = API::moduleImport("subprocess").getFunction("check_output") or
-        f = API::moduleImport("subprocess").getFunction("Popen") or
-        f = API::moduleImport("subprocess").getFunction("getoutput") or
-        f = API::moduleImport("subprocess").getFunction("getstatusoutput")
-      ))
+  predicate isSink(DataFlow::Node sink) {
+    sink instanceof SystemCommandExecution
   }
 }
 
-from ApexPyCmdFlow cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
+module ApexPyCmdFlow = TaintTracking::Global<ApexPyCmdCfg>;
+
+import ApexPyCmdFlow::PathGraph
+
+from ApexPyCmdFlow::PathNode source, ApexPyCmdFlow::PathNode sink
+where ApexPyCmdFlow::flowPath(source, sink)
 select sink.getNode(), source, sink,
-  "Python 命令注入: 远端输入流入 os/subprocess 执行 (CWE-78)."
+  "Python 命令注入: 远端输入流入 os/subprocess 执行 (CWE-78); 须列表传参+白名单."
