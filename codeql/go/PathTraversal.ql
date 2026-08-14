@@ -1,40 +1,33 @@
 /**
  * @name Go 路径穿越
- * @description 远端输入流入 os/io/ioutil 文件读写路径参数 → 任意文件读写 (CWE-22)。
+ * @description 远端输入流入文件系统操作(os.Open/Create/OpenFile/ReadFile/WriteFile/Remove/Mkdir 等) (CWE-22)。
  * @kind path-problem
  * @id apex/go-path-traversal
- * @problem.severity error
+ * @problem.severity warning
+ * @security-severity 7.5
  * @tags security external/cwe/cwe-22
  */
 import go
-import semmle.code.go.dataflow.TaintTracking
-import semmle.code.go.dataflow.FlowSources
 
-class ApexGoPathFlow extends TaintTracking::Configuration {
-  ApexGoPathFlow() { this = "ApexGoPathFlow" }
-
-  override predicate isSource(DataFlow::Node source) {
+module ApexGoPathCfg implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     source instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node sink) {
-    sink = API::moduleImport("os").getFunction("ReadFile").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("os").getFunction("WriteFile").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("os").getFunction("Create").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("os").getFunction("Open").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("os").getFunction("OpenFile").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("io/ioutil").getFunction("ReadFile").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("io/ioutil").getFunction("WriteFile").getACall().getAnArgument()
+  predicate isSink(DataFlow::Node sink) {
+    exists(CallExpr ce |
+      ce.getTarget().getName().regexpMatch(
+        "^(Open|OpenFile|Create|CreateTemp|ReadFile|WriteFile|Remove|RemoveAll|Mkdir|MkdirAll)$") and
+      sink.asExpr() = ce.getAnArgument()
+    )
   }
 }
 
-from ApexGoPathFlow cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
+module ApexGoPathFlow = TaintTracking::Global<ApexGoPathCfg>;
+
+import ApexGoPathFlow::PathGraph
+
+from ApexGoPathFlow::PathNode source, ApexGoPathFlow::PathNode sink
+where ApexGoPathFlow::flowPath(source, sink)
 select sink.getNode(), source, sink,
-  "Go 路径穿越: 远端输入流入文件路径 (CWE-22); 须 filepath.Clean + 前缀白名单校验."
+  "Go 路径穿越: 远端输入流入文件系统路径 (CWE-22); 须 filepath.Clean + 前缀白名单校验."
