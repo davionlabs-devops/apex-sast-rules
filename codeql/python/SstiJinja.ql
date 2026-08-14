@@ -20,7 +20,7 @@ module ApexPySstiCfg implements DataFlow::ConfigSig {
   }
 
   predicate isSink(DataFlow::Node sink) {
-    sink = API::moduleImport("flask").getFunction("render_template_string").getACall().getAnArgument()
+    sink = API::moduleImport("flask").getMember("render_template_string").getACall().getAnArgument()
     or
     sink = API::moduleImport("jinja2").getMember("Environment").getMember("from_string").getACall().getAnArgument()
   }
