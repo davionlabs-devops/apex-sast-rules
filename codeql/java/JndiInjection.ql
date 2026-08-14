@@ -5,20 +5,20 @@
  * @kind path-problem
  * @id apex/java-jndi-injection
  * @problem.severity error
+ * @security-severity 9.8
  * @tags security external/cwe/cwe-74
  */
 import java
+import semmle.code.java.dataflow.DataFlow
 import semmle.code.java.dataflow.TaintTracking
 import semmle.code.java.dataflow.FlowSources
 
-class ApexJndiFlow extends TaintTracking::Configuration {
-  ApexJndiFlow() { this = "ApexJndiFlow" }
-
-  override predicate isSource(DataFlow::Node source) {
+module ApexJndiCfg implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     source instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node sink) {
+  predicate isSink(DataFlow::Node sink) {
     exists(MethodCall mc |
       mc.getMethod().hasName("lookup") and
       mc.getMethod().getDeclaringType().getASupertype*().getQualifiedName() = "javax.naming.Context" and
@@ -27,7 +27,11 @@ class ApexJndiFlow extends TaintTracking::Configuration {
   }
 }
 
-from ApexJndiFlow cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
+module ApexJndiFlow = TaintTracking::Global<ApexJndiCfg>;
+
+import ApexJndiFlow::PathGraph
+
+from ApexJndiFlow::PathNode source, ApexJndiFlow::PathNode sink
+where ApexJndiFlow::flowPath(source, sink)
 select sink.getNode(), source, sink,
   "JNDI 注入: 远端输入流入 Context.lookup (CWE-74, log4shell 同型); lookup 目标须白名单."
