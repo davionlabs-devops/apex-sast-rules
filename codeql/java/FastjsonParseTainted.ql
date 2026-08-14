@@ -5,20 +5,20 @@
  * @kind path-problem
  * @id apex/fastjson-parse-tainted
  * @problem.severity warning
+ * @security-severity 5.0
  * @tags security external/cwe/cwe-502
  */
 import java
+import semmle.code.java.dataflow.DataFlow
 import semmle.code.java.dataflow.TaintTracking
 import semmle.code.java.dataflow.FlowSources
 
-class ApexFastjsonParseFlow extends TaintTracking::Configuration {
-  ApexFastjsonParseFlow() { this = "ApexFastjsonParseFlow" }
-
-  override predicate isSource(DataFlow::Node source) {
+module ApexFastjsonParseCfg implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     source instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node sink) {
+  predicate isSink(DataFlow::Node sink) {
     exists(MethodCall mc |
       mc.getMethod().getName().regexpMatch("parseObject|parse|parseArray") and
       mc.getMethod().getDeclaringType().getQualifiedName().regexpMatch("com\\.alibaba\\.fastjson2?\\.JSON") and
@@ -27,7 +27,11 @@ class ApexFastjsonParseFlow extends TaintTracking::Configuration {
   }
 }
 
-from ApexFastjsonParseFlow cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
+module ApexFastjsonParseFlow = TaintTracking::Global<ApexFastjsonParseCfg>;
+
+import ApexFastjsonParseFlow::PathGraph
+
+from ApexFastjsonParseFlow::PathNode source, ApexFastjsonParseFlow::PathNode sink
+where ApexFastjsonParseFlow::flowPath(source, sink)
 select sink.getNode(), source, sink,
   "远端输入流入 fastjson 解析 — 若开启 autoType 即 RCE (CVE-2022-25845); 确认输入校验且 autoType 关闭."
