@@ -18,12 +18,12 @@ from Expr e
 where
   exists(NewClassExpr ne |
     ne = e and
-    ne.getConstructor().getDeclaringType().getASupertype*().getName().regexpMatch("ClassPathXmlApplicationContext|FileSystemXmlApplicationContext|XMLDecoder"))
+    ne.getConstructor().getDeclaringType().(RefType).getASupertype*().getName().regexpMatch("ClassPathXmlApplicationContext|FileSystemXmlApplicationContext|XMLDecoder"))
   or
   exists(MethodCall mc |
     mc = e and
     mc.getMethod().getName().regexpMatch("load|loadAll") and
-    mc.getQualifier().(NewClassExpr).getConstructor().getDeclaringType().getASupertype*().getName() = "Yaml")
+    mc.getQualifier().(NewClassExpr).getConstructor().getDeclaringType().(RefType).getASupertype*().getName() = "Yaml")
   or
   exists(MethodCall mc |
     mc = e and
