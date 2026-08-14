@@ -4,20 +4,20 @@
  * @kind path-problem
  * @id apex/java-script-eval-injection
  * @problem.severity error
+ * @security-severity 9.8
  * @tags security external/cwe/cwe-94
  */
 import java
+import semmle.code.java.dataflow.DataFlow
 import semmle.code.java.dataflow.TaintTracking
 import semmle.code.java.dataflow.FlowSources
 
-class ApexScriptEvalFlow extends TaintTracking::Configuration {
-  ApexScriptEvalFlow() { this = "ApexScriptEvalFlow" }
-
-  override predicate isSource(DataFlow::Node source) {
+module ApexScriptEvalCfg implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     source instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node sink) {
+  predicate isSink(DataFlow::Node sink) {
     exists(MethodCall mc |
       mc.getMethod().hasName("eval") and
       mc.getMethod().getDeclaringType().getASupertype*().getQualifiedName() = "javax.script.ScriptEngine" and
@@ -26,7 +26,11 @@ class ApexScriptEvalFlow extends TaintTracking::Configuration {
   }
 }
 
-from ApexScriptEvalFlow cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
+module ApexScriptEvalFlow = TaintTracking::Global<ApexScriptEvalCfg>;
+
+import ApexScriptEvalFlow::PathGraph
+
+from ApexScriptEvalFlow::PathNode source, ApexScriptEvalFlow::PathNode sink
+where ApexScriptEvalFlow::flowPath(source, sink)
 select sink.getNode(), source, sink,
   "ScriptEngine 任意代码执行: 远端输入流入 eval (CWE-94); 脚本内容须固定/白名单."
