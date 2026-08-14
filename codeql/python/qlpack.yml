@@ -1,0 +1,6 @@
+name: apex/codeql-python
+version: 0.0.1
+description: "ApeX 自定义 CodeQL Python 规则 (命令注入/反序列化/SSTI)"
+library: false
+dependencies:
+  codeql/python-all: "*"
