@@ -20,15 +20,15 @@ module ApexPyDeserCfg implements DataFlow::ConfigSig {
   }
 
   predicate isSink(DataFlow::Node sink) {
-    sink = API::moduleImport("pickle").getMember("loads").getACall().getAnArgument()
+    sink = API::moduleImport("pickle").getMember("loads").getACall().getParameter(0)
     or
-    sink = API::moduleImport("pickle").getMember("load").getACall().getAnArgument()
+    sink = API::moduleImport("pickle").getMember("load").getACall().getParameter(0)
     or
-    sink = API::moduleImport("_pickle").getMember("loads").getACall().getAnArgument()
+    sink = API::moduleImport("_pickle").getMember("loads").getACall().getParameter(0)
     or
-    sink = API::moduleImport("cPickle").getMember("loads").getACall().getAnArgument()
+    sink = API::moduleImport("cPickle").getMember("loads").getACall().getParameter(0)
     or
-    sink = API::moduleImport("yaml").getMember("load").getACall().getAnArgument()
+    sink = API::moduleImport("yaml").getMember("load").getACall().getParameter(0)
   }
 }
 
