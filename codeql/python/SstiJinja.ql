@@ -1,36 +1,36 @@
 /**
  * @name Python SSTI (Jinja2/Flask)
- * @description 远端输入流入 render_template_string / Environment.from_string →
+ * @description 远端输入流入 flask.render_template_string / jinja2 Environment.from_string →
  *              模板注入 RCE (CWE-1336)。
  * @kind path-problem
  * @id apex/py-ssti-jinja
  * @problem.severity error
+ * @security-severity 9.8
  * @tags security external/cwe/cwe-1336
  */
 import python
-import semmle.code.python.dataflow.TaintTracking
-import semmle.code.python.dataflow.FlowSources
+import semmle.python.dataflow.new.DataFlow
+import semmle.python.dataflow.new.TaintTracking
+import semmle.python.dataflow.new.RemoteFlowSources
+import semmle.python.ApiGraphs
 
-class ApexPySstiFlow extends TaintTracking::Configuration {
-  ApexPySstiFlow() { this = "ApexPySstiFlow" }
-
-  override predicate isSource(DataFlow::Node source) {
+module ApexPySstiCfg implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     source instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node sink) {
-    exists(Function f, Call c |
-      c = f.getACall() and
-      sink.asExpr() = c.getArg(0) and
-      f = API::moduleImport("flask").getFunction("render_template_string"))
+  predicate isSink(DataFlow::Node sink) {
+    sink = API::moduleImport("flask").getFunction("render_template_string").getACall().getAnArgument()
     or
-    exists(Call c |
-      c.getFunc().(Name).getId() = "from_string" and
-      sink.asExpr() = c.getArg(0))
+    sink = API::moduleImport("jinja2").getMember("Environment").getMember("from_string").getACall().getAnArgument()
   }
 }
 
-from ApexPySstiFlow cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
+module ApexPySstiFlow = TaintTracking::Global<ApexPySstiCfg>;
+
+import ApexPySstiFlow::PathGraph
+
+from ApexPySstiFlow::PathNode source, ApexPySstiFlow::PathNode sink
+where ApexPySstiFlow::flowPath(source, sink)
 select sink.getNode(), source, sink,
   "Python SSTI: 远端输入作为模板字符串 (CWE-1336); 用户输入须作渲染数据而非模板."
