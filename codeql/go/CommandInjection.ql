@@ -1,31 +1,29 @@
 /**
- * @name Go 命令注入(污点)
- * @description 远端输入(net/http)流入 os/exec.Command/CommandContext 参数 → 命令注入 (CWE-78)。
- *              与 CommandExec.ql(调用点清单)互补: 本规则只报有污点路径的。
+ * @name Go 命令注入
+ * @description 远端输入流入命令执行(os/exec 及官方 SystemCommandExecution 概念覆盖面) (CWE-78)。
  * @kind path-problem
  * @id apex/go-cmd-injection
  * @problem.severity error
+ * @security-severity 9.8
  * @tags security external/cwe/cwe-78
  */
 import go
-import semmle.code.go.dataflow.TaintTracking
-import semmle.code.go.dataflow.FlowSources
 
-class ApexGoCmdFlow extends TaintTracking::Configuration {
-  ApexGoCmdFlow() { this = "ApexGoCmdFlow" }
-
-  override predicate isSource(DataFlow::Node source) {
+module ApexGoCmdCfg implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     source instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node sink) {
-    sink = API::moduleImport("os/exec").getFunction("Command").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("os/exec").getFunction("CommandContext").getACall().getAnArgument()
+  predicate isSink(DataFlow::Node sink) {
+    sink instanceof SystemCommandExecution
   }
 }
 
-from ApexGoCmdFlow cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
+module ApexGoCmdFlow = TaintTracking::Global<ApexGoCmdCfg>;
+
+import ApexGoCmdFlow::PathGraph
+
+from ApexGoCmdFlow::PathNode source, ApexGoCmdFlow::PathNode sink
+where ApexGoCmdFlow::flowPath(source, sink)
 select sink.getNode(), source, sink,
-  "Go 命令注入: 远端输入流入 os/exec.Command (CWE-78); 参数须逐个传递且白名单子命令."
+  "Go 命令注入: 远端输入流入命令执行 (CWE-78); 命令/参数须白名单, 勿拼接 shell."
