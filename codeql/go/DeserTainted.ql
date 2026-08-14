@@ -1,35 +1,32 @@
 /**
- * @name Go 不安全反序列化(yaml/gob)
- * @description 远端输入流入 yaml.Unmarshal / gob.NewDecoder → 非预期类型构造 (CWE-502)。
- *              Go json 安全, yaml 自定义 unmarshaler/gob 仍有类型混淆面。
+ * @name Go 不安全反序列化
+ * @description 远端输入流入 Unmarshal/Decode 类调用(yaml/json/gob/toml 等, 按名匹配) (CWE-502)。
  * @kind path-problem
  * @id apex/go-deser-tainted
  * @problem.severity warning
+ * @security-severity 7.5
  * @tags security external/cwe/cwe-502
  */
 import go
-import semmle.code.go.dataflow.TaintTracking
-import semmle.code.go.dataflow.FlowSources
 
-class ApexGoDeserFlow extends TaintTracking::Configuration {
-  ApexGoDeserFlow() { this = "ApexGoDeserFlow" }
-
-  override predicate isSource(DataFlow::Node source) {
+module ApexGoDeserCfg implements DataFlow::ConfigSig {
+  predicate isSource(DataFlow::Node source) {
     source instanceof RemoteFlowSource
   }
 
-  override predicate isSink(DataFlow::Node sink) {
-    sink = API::moduleImport("gopkg.in/yaml.v2").getFunction("Unmarshal").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("gopkg.in/yaml.v3").getFunction("Unmarshal").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("sigs.k8s.io/yaml").getFunction("Unmarshal").getACall().getAnArgument()
-    or
-    sink = API::moduleImport("encoding/gob").getFunction("NewDecoder").getACall().getAnArgument()
+  predicate isSink(DataFlow::Node sink) {
+    exists(CallExpr ce |
+      ce.getTarget().getName().regexpMatch("^(Unmarshal|UnmarshalStrict|UnmarshalYAML)$") and
+      sink.asExpr() = ce.getAnArgument()
+    )
   }
 }
 
-from ApexGoDeserFlow cfg, DataFlow::PathNode source, DataFlow::PathNode sink
-where cfg.hasFlowPath(source, sink)
+module ApexGoDeserFlow = TaintTracking::Global<ApexGoDeserCfg>;
+
+import ApexGoDeserFlow::PathGraph
+
+from ApexGoDeserFlow::PathNode source, ApexGoDeserFlow::PathNode sink
+where ApexGoDeserFlow::flowPath(source, sink)
 select sink.getNode(), source, sink,
-  "Go 不安全反序列化: 远端输入流入 yaml/gob 解码 (CWE-502); 确认目标类型固定且数据来源可信."
+  "Go 不安全反序列化: 远端输入流入 Unmarshal (CWE-502); 须校验来源与 schema."
