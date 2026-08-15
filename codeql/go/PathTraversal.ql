@@ -16,8 +16,8 @@ module ApexGoPathCfg implements DataFlow::ConfigSig {
 
   predicate isSink(DataFlow::Node sink) {
     exists(CallExpr ce |
-      ce.getTarget().getName().regexpMatch(
-        "^(Open|OpenFile|Create|CreateTemp|ReadFile|WriteFile|Remove|RemoveAll|Mkdir|MkdirAll)$") and
+      ce.getTarget().getQualifiedName().regexpMatch(
+        "^(os|io/ioutil)\\.(Open|OpenFile|Create|CreateTemp|ReadFile|WriteFile|Remove|RemoveAll|Mkdir|MkdirAll)$") and
       sink.asExpr() = ce.getAnArgument()
     )
   }
