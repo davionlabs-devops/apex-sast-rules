@@ -10,5 +10,5 @@
 import go
 
 from CallExpr call
-where call.getTarget().getName().regexpMatch("Command|CommandContext")
+where call.getTarget().getQualifiedName().regexpMatch("^os/exec\\.(Command|CommandContext)$")
 select call, "os/exec 命令执行调用点 — 复核参数是否拼接远端输入 (CWE-78)."
