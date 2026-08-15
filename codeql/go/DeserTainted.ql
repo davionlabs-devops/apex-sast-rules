@@ -16,7 +16,8 @@ module ApexGoDeserCfg implements DataFlow::ConfigSig {
 
   predicate isSink(DataFlow::Node sink) {
     exists(CallExpr ce |
-      ce.getTarget().getName().regexpMatch("^(Unmarshal|UnmarshalStrict|UnmarshalYAML)$") and
+      ce.getTarget().getQualifiedName().regexpMatch(
+        "^(encoding/json|encoding/xml|encoding/gob|gopkg\\.in/yaml\\.[v0-9]+|github\\.com/BurntSushi/toml)\\.(Unmarshal|UnmarshalStrict|UnmarshalYAML|NewDecoder)$") and
       sink.asExpr() = ce.getAnArgument()
     )
   }
