@@ -17,7 +17,7 @@ module ApexGoTplCfg implements DataFlow::ConfigSig {
 
   predicate isSink(DataFlow::Node sink) {
     exists(CallExpr ce |
-      ce.getTarget().getName().regexpMatch("^(Parse|ParseFiles|ParseGlob|ParseFS)$") and
+      ce.getTarget().getQualifiedName().regexpMatch("^(text|html)/template\\.(Parse|ParseFiles|ParseGlob|ParseFS)$") and
       sink.asExpr() = ce.getAnArgument()
     )
   }
