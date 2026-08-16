@@ -1,0 +1,6 @@
+name: apex/codeql-javascript
+version: 0.0.1
+description: "ApeX CodeQL JavaScript/TypeScript rules (github/codeql cherry-picks: auth bypass / SSRF guard bypass / prompt injection / clickjacking / config secrets)"
+library: false
+dependencies:
+  codeql/javascript-all: "*"
